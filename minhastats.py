@@ -1,4 +1,4 @@
-import streamlit as st
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -75,6 +75,9 @@ st.title("🧮 Laboratório Estatístico - Uso da Frota")
 
 @st.cache_data
 def carregar_dados():
+    caminho_absoluto = os.path.join(os.path.dirname(__file__), "uso_da_frota_2025.csv")
+    if os.path.exists(caminho_absoluto):
+        return pd.read_csv(caminho_absoluto)
     try:
         return pd.read_csv("uso_da_frota_2025.csv")
     except Exception:
@@ -83,86 +86,7 @@ def carregar_dados():
 df = carregar_dados()
 
 if df is None:
-    st.error("Arquivo 'uso_da_frota_2025.csv' não encontrado no repositório.")
-else:
-    cols_num = df.select_dtypes(include=[np.number]).columns.tolist()
-    
-    aba0, aba2, aba3_4, aba5 = st.tabs([
-        "📦 Módulo 0: Dados", 
-        "📊 Módulo 2: Descritiva", 
-        "🎲 Módulos 3/4: Simulações", 
-        "📈 Módulo 5: Regressão"
-    ])
-
-    # Módulo 0
-    with aba0:
-        st.subheader("Dataset Carregado")
-        st.write(f"Total de registros: **{len(df)}**")
-        st.dataframe(df.head(10))
-
-    # Módulo 2
-    with aba2:
-        st.subheader("Análise Descritiva Interativa")
-        var_sel = st.selectbox("Selecione uma variável numérica:", cols_num)
-        dados = df[var_sel].dropna().tolist()
-        
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Média (Própria)", f"{calcular_media(dados):.2f}")
-        c2.metric("Mediana (Própria)", f"{calcular_mediana(dados):.2f}")
-        c3.metric("Desvio Padrão", f"{calcular_desvio_padrao(dados):.2f}")
-        c4.metric("Coef. Variação", f"{calcular_cv(dados):.2f}%")
-        
-        q1, q3 = calcular_percentil(dados, 25), calcular_percentil(dados, 75)
-        iqr = q3 - q1
-        outliers = [x for x in dados if x < (q1 - 1.5 * iqr) or x > (q3 + 1.5 * iqr)]
-        st.write(f"**Regra do IQR:** Q1={q1:.2f}, Q3={q3:.2f}, Outliers detectados: **{len(outliers)}**")
-        
-        fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-        ax[0].hist(dados, bins=15, color='skyblue', edgecolor='black')
-        ax[0].set_title("Histograma")
-        ax[1].boxplot(dados, vert=False)
-        ax[1].set_title("Boxplot")
-        st.pyplot(fig)
-
-    # Módulos 3 e 4
-    with aba3_4:
-        st.subheader("Teorema Central do Limite (Monte Carlo)")
-        var_sim = st.selectbox("Variável para amostragem:", cols_num, key="sim")
-        dados_sim = df[var_sim].dropna().values
-        
-        n_amostra = st.slider("Tamanho da amostra (n):", 5, 100, 30)
-        n_repeticoes = st.slider("Número de repetições:", 100, 5000, 1000)
-        
-        medias_amostrais = [np.mean(np.random.choice(dados_sim, size=n_amostra)) for _ in range(n_repeticoes)]
-        
-        fig, ax = plt.subplots(figsize=(7, 3))
-        ax.hist(medias_amostrais, bins=30, density=True, alpha=0.6, color='g')
-        ax.set_title(f"Distribuição das Médias Amostrais (n={n_amostra})")
-        st.pyplot(fig)
-
-    # Módulo 5
-    with aba5:
-        st.subheader("Correlação e Regressão Linear")
-        col_x = st.selectbox("Variável X (Independente):", cols_num, index=0)
-        col_y = st.selectbox("Variável Y (Dependente):", cols_num, index=min(1, len(cols_num)-1))
-        
-        sub_df = df[[col_x, col_y]].dropna()
-        vx, vy = sub_df[col_x].tolist(), sub_df[col_y].tolist()
-        
-        r = calcular_pearson(vx, vy)
-        a, b, r2 = calcular_regressao(vx, vy)
-        
-        st.write(f"**Coeficiente de Correlação (r):** {r:.4f}")
-        st.write(f"**Equação da Reta:** Y = {a:.4f}X + ({b:.4f}) | **R²:** {r2:.4f}")
-        st.info("⚠️ **Aviso:** Correlação não implica causalidade!")
-        
-        val_x = st.number_input(f"Digitar valor para {col_x} (Predição):", value=float(calcular_media(vx)))
-        st.success(f"**Predição Ŷ:** {a * val_x + b:.4f}")
-        
-        fig, ax = plt.subplots(figsize=(7, 4))
-        ax.scatter(vx, vy, alpha=0.5)
-        x_trend = np.linspace(min(vx), max(vx), 100)
-        ax.plot(x_trend, a * x_trend + b, color='red')
-        ax.set_xlabel(col_x)
-        ax.set_ylabel(col_y)
-        st.pyplot(fig)
+    st.warning("⚠️ O arquivo 'uso_da_frota_2025.csv' não foi localizado automaticamente no servidor.")
+    arquivo_enviado = st.file_uploader("Faça o upload do arquivo 'uso_da_frota_2025.csv' aqui para abrir a aplicação:", type=["csv"])
+    if arquivo_enviado is not None:
+        df = pd.read_csv(arquivo_enviado)
