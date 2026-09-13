@@ -2,7 +2,7 @@
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tonny-rds-hawss3s7ixx38gmkc4cvavi.streamlit.app)
 
-🚀 **Acesse a aplicação online:** [https://tonny-rds-hawss3s7ixx38gmkc4cvavi.streamlit.app](https://tonny-rds-hawss3s7ixx38gmkc4cvavi.streamlit.app)
+🚀 **Acesse a aplicação online:** https://tonny-rds-haws3s7ixx38gmkc4cvavi.streamlit.app/
 
 ---
 # Olá, eu sou Antônio Francisco!
