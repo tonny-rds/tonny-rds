@@ -1,3 +1,10 @@
+# 🧮 Laboratório Estatístico — Análise da Frota 2025
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tonny-rds-hawss3s7ixx38gmkc4cvavi.streamlit.app)
+
+🚀 **Acesse a aplicação online:** [https://tonny-rds-hawss3s7ixx38gmkc4cvavi.streamlit.app](https://tonny-rds-hawss3s7ixx38gmkc4cvavi.streamlit.app)
+
+---
 # Olá, eu sou Antônio Francisco!
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-%230077B5.svg?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com)
