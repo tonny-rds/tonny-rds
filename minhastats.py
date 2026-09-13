@@ -121,7 +121,8 @@ if df is None:
 # ==========================================
 
 if df is not None:
-    cols_num = df.select_dtypes(include=[np.number]).columns.tolist()
+    # Filtrar apenas colunas numéricas que tenham dados válidos (não 100% nulas)
+    cols_num = [c for c in df.select_dtypes(include=[np.number]).columns if df[c].dropna().count() > 0]
     
     aba0, aba2, aba3_4, aba5 = st.tabs([
         "📦 Módulo 0: Dados", 
@@ -143,29 +144,32 @@ if df is not None:
             var_sel = st.selectbox("Selecione uma variável numérica:", cols_num)
             dados = df[var_sel].dropna().tolist()
             
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Média (Própria)", f"{calcular_media(dados):.2f}")
-            c2.metric("Mediana (Própria)", f"{calcular_mediana(dados):.2f}")
-            c3.metric("Desvio Padrão (Amostral)", f"{calcular_desvio_padrao(dados):.2f}")
-            c4.metric("Coeficiente de Variação", f"{calcular_cv(dados):.2f}%")
-            
-            q1 = calcular_percentil(dados, 25)
-            q3 = calcular_percentil(dados, 75)
-            iqr = q3 - q1
-            outliers = [x for x in dados if x < (q1 - 1.5 * iqr) or x > (q3 + 1.5 * iqr)]
-            
-            st.markdown("---")
-            st.write(f"**Regra do IQR:** Q1 = `{q1:.2f}` | Q3 = `{q3:.2f}` | IQR = `{iqr:.2f}`")
-            st.write(f"**Outliers detectados:** **{len(outliers)}** elemento(s)")
-            
-            fig, ax = plt.subplots(1, 2, figsize=(12, 4))
-            ax[0].hist(dados, bins=15, color='#4C72B0', edgecolor='black')
-            ax[0].set_title(f"Histograma de {var_sel}")
-            ax[1].boxplot(dados, vert=False)
-            ax[1].set_title(f"Boxplot de {var_sel}")
-            st.pyplot(fig)
+            if len(dados) > 0:
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Média (Própria)", f"{calcular_media(dados):.2f}")
+                c2.metric("Mediana (Própria)", f"{calcular_mediana(dados):.2f}")
+                c3.metric("Desvio Padrão (Amostral)", f"{calcular_desvio_padrao(dados):.2f}")
+                c4.metric("Coeficiente de Variação", f"{calcular_cv(dados):.2f}%")
+                
+                q1 = calcular_percentil(dados, 25)
+                q3 = calcular_percentil(dados, 75)
+                iqr = q3 - q1
+                outliers = [x for x in dados if x < (q1 - 1.5 * iqr) or x > (q3 + 1.5 * iqr)]
+                
+                st.markdown("---")
+                st.write(f"**Regra do IQR:** Q1 = `{q1:.2f}` | Q3 = `{q3:.2f}` | IQR = `{iqr:.2f}`")
+                st.write(f"**Outliers detectados:** **{len(outliers)}** elemento(s)")
+                
+                fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+                ax[0].hist(dados, bins=15, color='#4C72B0', edgecolor='black')
+                ax[0].set_title(f"Histograma de {var_sel}")
+                ax[1].boxplot(dados, vert=False)
+                ax[1].set_title(f"Boxplot de {var_sel}")
+                st.pyplot(fig)
+            else:
+                st.warning("Esta coluna não possui dados numéricos válidos.")
         else:
-            st.error("Nenhuma coluna numérica identificada no arquivo.")
+            st.error("Nenhuma coluna numérica válida identificada no arquivo.")
 
     # --- MÓDULOS 3 E 4: PROBABILIDADE, SIMULAÇÃO E DISTRIBUIÇÕES ---
     with aba3_4:
@@ -174,25 +178,28 @@ if df is not None:
             var_sim = st.selectbox("Selecione a variável para amostragem:", cols_num, key="sim_var")
             dados_sim = df[var_sim].dropna().values
             
-            col_param1, col_param2 = st.columns(2)
-            n_amostra = col_param1.slider("Tamanho da Amostra (n):", min_value=5, max_value=200, value=30, step=5)
-            n_repeticoes = col_param2.slider("Número de Repetições:", min_value=100, max_value=5000, value=1000, step=100)
-            
-            medias_amostrais = [np.mean(np.random.choice(dados_sim, size=n_amostra, replace=True)) for _ in range(n_repeticoes)]
-            
-            fig, ax = plt.subplots(figsize=(8, 4))
-            count, bins, ignored = ax.hist(medias_amostrais, bins=30, density=True, alpha=0.6, color='g', edgecolor='black')
-            
-            # Ajuste da Curva Normal Teórica sobre o histograma das médias
-            mu_sim = calcular_media(medias_amostrais)
-            sigma_sim = calcular_desvio_padrao(medias_amostrais)
-            if sigma_sim > 0:
-                y_normal = (1 / (sigma_sim * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((bins - mu_sim) / sigma_sim) ** 2)
-                ax.plot(bins, y_normal, linewidth=2, color='r', label='Ajuste Normal Teórico')
-                ax.legend()
+            if len(dados_sim) > 0:
+                col_param1, col_param2 = st.columns(2)
+                n_amostra = col_param1.slider("Tamanho da Amostra (n):", min_value=5, max_value=200, value=30, step=5)
+                n_repeticoes = col_param2.slider("Número de Repetições:", min_value=100, max_value=5000, value=1000, step=100)
                 
-            ax.set_title(f"Distribuição das Médias Amostrais (n={n_amostra}, repetições={n_repeticoes})")
-            st.pyplot(fig)
+                medias_amostrais = [np.mean(np.random.choice(dados_sim, size=n_amostra, replace=True)) for _ in range(n_repeticoes)]
+                
+                fig, ax = plt.subplots(figsize=(8, 4))
+                count, bins, ignored = ax.hist(medias_amostrais, bins=30, density=True, alpha=0.6, color='g', edgecolor='black')
+                
+                # Ajuste da Curva Normal Teórica
+                mu_sim = calcular_media(medias_amostrais)
+                sigma_sim = calcular_desvio_padrao(medias_amostrais)
+                if sigma_sim > 0:
+                    y_normal = (1 / (sigma_sim * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((bins - mu_sim) / sigma_sim) ** 2)
+                    ax.plot(bins, y_normal, linewidth=2, color='r', label='Ajuste Normal Teórico')
+                    ax.legend()
+                    
+                ax.set_title(f"Distribuição das Médias Amostrais (n={n_amostra}, repetições={n_repeticoes})")
+                st.pyplot(fig)
+            else:
+                st.warning("Esta coluna não possui dados válidos para simulação.")
         else:
             st.error("Nenhuma coluna numérica disponível para simulação.")
 
@@ -202,38 +209,47 @@ if df is not None:
         if len(cols_num) >= 2:
             cx1, cx2 = st.columns(2)
             col_x = cx1.selectbox("Variável X (Independente):", cols_num, index=0)
-            col_y = cx2.selectbox("Variável Y (Dependente):", cols_num, index=min(1, len(cols_num) - 1))
+            
+            # Tentar selecionar como padrão a segunda coluna numérica da lista
+            default_y_idx = 1 if len(cols_num) > 1 else 0
+            col_y = cx2.selectbox("Variável Y (Dependente):", cols_num, index=default_y_idx)
             
             sub_df = df[[col_x, col_y]].dropna()
             vx = sub_df[col_x].tolist()
             vy = sub_df[col_y].tolist()
             
-            r = calcular_pearson(vx, vy)
-            a, b, r2 = calcular_regressao(vx, vy)
-            
-            st.markdown("---")
-            m1, m2, m3 = st.columns(3)
-            m1.metric("Correlação de Pearson (r)", f"{r:.4f}")
-            m2.metric("Inclinacao (a)", f"{a:.4f}")
-            m3.metric("Coef. Determinação (R²)", f"{r2:.4f}")
-            
-            st.write(f"**Equação da Reta:** `Y = {a:.4f} * X + ({b:.4f})`")
-            st.warning("⚠️ **Aviso Metodológico:** Correlação estatística não implica relação de causalidade!")
-            
-            st.markdown("---")
-            st.subheader("Predição Interativa (Ŷ)")
-            val_x = st.number_input(f"Digite um valor para {col_x}:", value=float(calcular_media(vx)))
-            pred_y = a * val_x + b
-            st.success(f"**Valor estimado para {col_y} (Ŷ):** `{pred_y:.4f}`")
-            
-            fig, ax = plt.subplots(figsize=(8, 4))
-            ax.scatter(vx, vy, alpha=0.5, color='#1f77b4', label='Dados')
-            x_range = np.linspace(min(vx), max(vx), 100)
-            ax.plot(x_range, a * x_range + b, color='red', linewidth=2, label='Reta de Regressão')
-            ax.set_xlabel(col_x)
-            ax.set_ylabel(col_y)
-            ax.legend()
-            st.pyplot(fig)
+            if len(vx) > 1:
+                r = calcular_pearson(vx, vy)
+                a, b, r2 = calcular_regressao(vx, vy)
+                
+                st.markdown("---")
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Correlação de Pearson (r)", f"{r:.4f}")
+                m2.metric("Inclinacao (a)", f"{a:.4f}")
+                m3.metric("Coef. Determinação (R²)", f"{r2:.4f}")
+                
+                st.write(f"**Equação da Reta:** `Y = {a:.4f} * X + ({b:.4f})`")
+                st.warning("⚠️ **Aviso Metodológico:** Correlação estatística não implica relação de causalidade!")
+                
+                st.markdown("---")
+                st.subheader("Predição Interativa (Ŷ)")
+                val_x = st.number_input(f"Digite um valor para {col_x}:", value=float(calcular_media(vx)))
+                pred_y = a * val_x + b
+                st.success(f"**Valor estimado para {col_y} (Ŷ):** `{pred_y:.4f}`")
+                
+                fig, ax = plt.subplots(figsize=(8, 4))
+                ax.scatter(vx, vy, alpha=0.5, color='#1f77b4', label='Dados')
+                min_x, max_x = min(vx), max(vx)
+                if min_x == max_x:
+                    max_x += 1.0
+                x_range = np.linspace(min_x, max_x, 100)
+                ax.plot(x_range, a * x_range + b, color='red', linewidth=2, label='Reta de Regressão')
+                ax.set_xlabel(col_x)
+                ax.set_ylabel(col_y)
+                ax.legend()
+                st.pyplot(fig)
+            else:
+                st.warning("⚠️ Não há registros válidos compartilhados entre as duas variáveis selecionadas.")
         else:
-            st.error("São necessárias pelo menos duas variáveis numéricas para a regressão.")
+            st.error("São necessárias pelo menos duas variáveis numéricas com dados válidos para a regressão.")
 
