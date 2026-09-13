@@ -9,17 +9,17 @@ import matplotlib.pyplot as plt
 # ==========================================
 
 def calcular_media(lista):
-    return sum(lista) / len(lista) if lista else 0.0
+    return sum(lista) / len(lista) if len(lista) > 0 else 0.0
 
 def calcular_mediana(lista):
-    if not lista: return 0.0
+    if len(lista) == 0: return 0.0
     s = sorted(lista)
     n = len(s)
     m = n // 2
     return (s[m - 1] + s[m]) / 2.0 if n % 2 == 0 else float(s[m])
 
 def calcular_moda(lista):
-    if not lista: return "N/A"
+    if len(lista) == 0: return "N/A"
     freq = {}
     for x in lista:
         freq[x] = freq.get(x, 0) + 1
@@ -36,7 +36,7 @@ def calcular_moda(lista):
         return f"Multimodal ({len(modas)} modas)"
 
 def calcular_amplitude(lista):
-    if not lista: return 0.0
+    if len(lista) == 0: return 0.0
     return float(max(lista) - min(lista))
 
 def calcular_variancia(lista, amostral=True):
@@ -44,7 +44,7 @@ def calcular_variancia(lista, amostral=True):
     if n <= 1: return 0.0
     m = calcular_media(lista)
     div = (n - 1) if amostral else n
-    return sum((x - m) ** 2 for x in lista) / div
+    return sum((x - m) ** 2 for x in lista) / float(div)
 
 def calcular_desvio_padrao(lista, amostral=True):
     return calcular_variancia(lista, amostral) ** 0.5
@@ -54,7 +54,7 @@ def calcular_cv(lista):
     return (calcular_desvio_padrao(lista) / m * 100.0) if m != 0 else 0.0
 
 def calcular_percentil(lista, p):
-    if not lista: return 0.0
+    if len(lista) == 0: return 0.0
     s = sorted(lista)
     n = len(s)
     k = (p / 100.0) * (n - 1)
@@ -66,7 +66,7 @@ def calcular_covariancia(x, y):
     n = len(x)
     if n <= 1 or len(y) != n: return 0.0
     mx, my = calcular_media(x), calcular_media(y)
-    return sum((x[i] - mx) * (y[i] - my) for i in range(n)) / (n - 1)
+    return sum((x[i] - mx) * (y[i] - my) for i in range(n)) / float(n - 1)
 
 def calcular_pearson(x, y):
     dpx, dpy = calcular_desvio_padrao(x), calcular_desvio_padrao(y)
@@ -309,56 +309,63 @@ if df is not None:
             st.write("Conforme o tamanho da amostra ($n$) cresce, a distribuição das médias amostrais se aproxima de uma Distribuição Normal.")
             
             var_tcl = st.selectbox("Selecione a variável do dataset:", cols_num, key="tcl_var")
-            dados_tcl = df[var_tcl].dropna().values
+            dados_tcl = df[var_tcl].dropna().tolist()
             
-            c_tcl1, c_tcl2 = st.columns(2)
-            n_amostra = c_tcl1.slider("Tamanho da Amostra (n):", min_value=2, max_value=150, value=30, step=2)
-            n_rep = c_tcl2.slider("Número de Repetições:", min_value=100, max_value=5000, value=1000, step=100)
-            
-            medias_amostrais = [np.mean(np.random.choice(dados_tcl, size=n_amostra, replace=True)) for _ in range(n_rep)]
-            
-            fig_tcl, ax_tcl = plt.subplots(figsize=(9, 4))
-            count, bins, _ = ax_tcl.hist(medias_amostrais, bins=30, density=True, alpha=0.6, color='#4C72B0', edgecolor='black')
-            
-            mu_tcl = calcular_media(medias_amostrais)
-            sigma_tcl = calcular_desvio_padrao(medias_amostrais)
-            if sigma_tcl > 0:
-                y_norm = (1 / (sigma_tcl * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((bins - mu_tcl) / sigma_tcl) ** 2)
-                ax_tcl.plot(bins, y_norm, color='red', linewidth=2, label='Normal Teórica')
-            
-            ax_tcl.set_title(f"Distribuição das Médias Amostrais de {var_tcl} (n={n_amostra})")
-            ax_tcl.legend()
-            st.pyplot(fig_tcl)
+            if len(dados_tcl) > 0:
+                c_tcl1, c_tcl2 = st.columns(2)
+                n_amostra = c_tcl1.slider("Tamanho da Amostra (n):", min_value=2, max_value=150, value=30, step=2)
+                n_rep = c_tcl2.slider("Número de Repetições:", min_value=100, max_value=5000, value=1000, step=100)
+                
+                medias_amostrais = [np.mean(np.random.choice(dados_tcl, size=n_amostra, replace=True)) for _ in range(n_rep)]
+                
+                fig_tcl, ax_tcl = plt.subplots(figsize=(9, 4))
+                count, bins, _ = ax_tcl.hist(medias_amostrais, bins=30, density=True, alpha=0.6, color='#4C72B0', edgecolor='black')
+                
+                mu_tcl = calcular_media(medias_amostrais)
+                sigma_tcl = calcular_desvio_padrao(medias_amostrais)
+                if sigma_tcl > 0:
+                    y_norm = (1 / (sigma_tcl * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((bins - mu_tcl) / sigma_tcl) ** 2)
+                    ax_tcl.plot(bins, y_norm, color='red', linewidth=2, label='Normal Teórica')
+                
+                ax_tcl.set_title(f"Distribuição das Médias Amostrais de {var_tcl} (n={n_amostra})")
+                ax_tcl.legend()
+                st.pyplot(fig_tcl)
 
     # ------------------------------------------
     # MÓDULO 4: DISTRIBUIÇÕES TEÓRICAS
     # ------------------------------------------
     with aba4:
         st.subheader("Ajuste de Distribuições Teóricas")
-        var_dist = st.selectbox("Selecione a variável numérica:", cols_num, key="dist_var")
-        dados_dist = np.array(df[var_dist].dropna().tolist())
-        
-        dist_tipo = st.selectbox("Escolha a distribuição teórica para sobrepor:", ["Normal", "Exponencial"])
-        
-        mu_hat = calcular_media(dados_dist)
-        sigma_hat = calcular_desvio_padrao(dados_dist, amostral=True)
-        
-        fig_d, ax_d = plt.subplots(figsize=(9, 4))
-        count_d, bins_d, _ = ax_d.hist(dados_dist, bins=25, density=True, alpha=0.5, color='gray', edgecolor='black', label='Dados Reais')
-        
-        if dist_tipo == "Normal" and sigma_hat > 0:
-            y_teo = (1 / (sigma_hat * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((bins_d - mu_hat) / sigma_hat) ** 2)
-            ax_d.plot(bins_d, y_teo, 'r-', linewidth=2, label=f'Normal Teórica (μ={mu_hat:.2f}, σ={sigma_hat:.2f})')
-        elif dist_tipo == "Exponencial" and mu_hat > 0:
-            lamb = 1.0 / mu_hat
-            bins_pos = np.maximum(0, bins_d)
-            y_teo = lamb * np.exp(-lamb * bins_pos)
-            ax_d.plot(bins_d, y_teo, 'g-', linewidth=2, label=f'Exponencial Teórica (λ={lamb:.4f})')
+        if cols_num:
+            var_dist = st.selectbox("Selecione a variável numérica:", cols_num, key="dist_var")
+            dados_dist = df[var_dist].dropna().tolist()
             
-        ax_d.set_title(f"Histograma de {var_dist} vs Ajuste Teórico ({dist_tipo})")
-        ax_d.legend()
-        st.pyplot(fig_d)
-        st.caption("Discussão de ajuste: Verifique visualmente a aderência da curva vermelha/verde ao contorno das barras do histograma.")
+            if len(dados_dist) > 0:
+                dist_tipo = st.selectbox("Escolha a distribuição teórica para sobrepor:", ["Normal", "Exponencial"])
+                
+                mu_hat = calcular_media(dados_dist)
+                sigma_hat = calcular_desvio_padrao(dados_dist, amostral=True)
+                
+                fig_d, ax_d = plt.subplots(figsize=(9, 4))
+                count_d, bins_d, _ = ax_d.hist(dados_dist, bins=25, density=True, alpha=0.5, color='gray', edgecolor='black', label='Dados Reais')
+                
+                if dist_tipo == "Normal" and sigma_hat > 0:
+                    y_teo = (1 / (sigma_hat * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((bins_d - mu_hat) / sigma_hat) ** 2)
+                    ax_d.plot(bins_d, y_teo, 'r-', linewidth=2, label=f'Normal Teórica (μ={mu_hat:.2f}, σ={sigma_hat:.2f})')
+                elif dist_tipo == "Exponencial" and mu_hat > 0:
+                    lamb = 1.0 / mu_hat
+                    bins_pos = np.maximum(0, bins_d)
+                    y_teo = lamb * np.exp(-lamb * bins_pos)
+                    ax_d.plot(bins_d, y_teo, 'g-', linewidth=2, label=f'Exponencial Teórica (λ={lamb:.4f})')
+                    
+                ax_d.set_title(f"Histograma de {var_dist} vs Ajuste Teórico ({dist_tipo})")
+                ax_d.legend()
+                st.pyplot(fig_d)
+                st.caption("Discussão de ajuste: Verifique visualmente a aderência da curva vermelha/verde ao contorno das barras do histograma.")
+            else:
+                st.warning("Esta coluna não possui dados válidos para ajuste.")
+        else:
+            st.error("Nenhuma variável numérica disponível.")
 
     # ------------------------------------------
     # MÓDULO 5: CORRELAÇÃO E REGRESSÃO LINEAR
@@ -381,8 +388,10 @@ if df is not None:
                 st.markdown("---")
                 m1, m2, m3 = st.columns(3)
                 m1.metric("Correlação de Pearson (r)", f"{r:.4f}")
-                m2.metric("Inclinação (a)", f"{a:.4f}")
-                m3.metric("Coeficiente R²", f"{r2:.4f}")
+                m1_inc, m2_b, m3_r2 = st.columns(3)
+                m1_inc.metric("Inclinação (a)", f"{a:.4f}")
+                m2_b.metric("Intercepto (b)", f"{b:.4f}")
+                m3_r2.metric("Coeficiente R²", f"{r2:.4f}")
                 
                 st.write(f"**Equação da Reta:** `Y = {a:.4f} * X + ({b:.4f})`")
                 st.warning("⚠️ **Alerta Metodológico Honestidade:** Correlação estatística **NÃO** implica relação de causalidade!")
@@ -407,4 +416,3 @@ if df is not None:
                 st.warning("Não há pares válidos compartilhados entre as variáveis.")
         else:
             st.error("São necessárias pelo menos duas colunas numéricas válidas.")
-
